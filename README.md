@@ -109,6 +109,7 @@ CPU는 아래의 부분들로 구성되어 다양한 작업을 수행한다.
 * **Cache memory**
     * CPU의 속도를 빠르게 하는 임시메모리 (SRAM 구성)
     * 프로그램을 실행할 때 마다  HDD를 읽어오는 것 대신 램과 디스크 사이에 임시로 프로그램을 저장하여 읽어오는 시간을 빠르게 함
+    * 반드시 하드웨어적인 개선을 통해 성능향상 (SW적 접근 및 개선 불가)
 
 ### 6. Abstractions
 
@@ -163,13 +164,102 @@ Performance_x / Performace_y = Execution Time_y / Execution Time_x = n
 
 ### 10. CPU Time
 
+ CPU Time에 대해 학습하기에 앞서 CPU Time에 영향을 주는 요소 중의 하나인 CPU Clocking에 대해 알아보자. 클록(Clock)은 같은 시스템에서 각 구성요소의 동기화(Synchronous System) 및 정확한 시간을 유지하여 프로그램에 제공하는 기능을 한다. 클록은 아래 그림과 같이 일정한 펄스를 신호로 하여 시스템 내 구성요소의 동작을 동기화 한다. 이 때 한 주기 (cycle)의 클록을 Clock Period, 1초동안 발생한 사이클 수를 클록 주파수 (Clock Freqency)라고 한다.
+
+![image](https://user-images.githubusercontent.com/45297745/95369351-4a90d880-0912-11eb-8af8-2e46219abaac.png)
+
+ 이를 통해 이제 CPU Time을 결정해보자. CPU Time은 앞서 말했듯 클록에 영향을 받는다. 이를 식으로 나타내어 보면 다음과 같다.
+
+![image](https://user-images.githubusercontent.com/45297745/95370197-65b01800-0913-11eb-9d05-9cb19d99cf4f.png)
+
+위의 식에서 확인할 수 있듯 CPU Time은 Clock의 Cycle 수와 Cycle time 등에 영향을 받지만, 실제로 컴퓨터를 비교할 때 Clock Cycle이 모두 동일하지 않은 경우가 있다. 따라서 Clock Cycle 수를 결정해야 하는데 그 방법은 아래에서 소개한다.
+
 ### 11. Instruction Count and CPI
+
+Instruction Count란 말 그대로 전달하는 명령어의 수를 말한다. CPI란 Clock Per Instruction이라는 뜻으로, 한 명령어당 소요되는 클럭 수를 의미한다. 따라서 Instruction Count와 CPI의 곱은 Clock Cycle 수가 된다. 정리하면,
+
+![image](https://user-images.githubusercontent.com/45297745/95371209-d60b6900-0914-11eb-9a7c-89fc13f78314.png)
+
+ 이 때 Instruction count는 프로그램, ISA, 컴파일러 등에 의해 영향을 받는다. 또, 명령어당 평균적인  사이클은 CPU에 의해 결정되며, 명령어가 다르면 다른 CPI를 갖게 된다.
+
+ 이처럼 컴퓨터 (혹은 마이크로프로세서)의 성능을 결정하는 '시간'에 대해 알아보았다. 특히 마이크로프로세서의 경우, CPU Time 즉, 속도 외에도 전력(Power), 가격 등이 아주 중요한 성능 지표중의 하나가 됨을 알아두도록 한다.
 
 
 
 ## Chapter 2. Instructions : Language of the Computer
 
+  앞서 말했듯, 마이크로프로세서를 사용하기 위한 명령어인 Instruction, 그리고 이를 모아둔 집합이 Instruction Set이다. Istruction Set은 사용하는 마이크로프로세서마다 조금씩 다르다. 그에 따라 사용하는 방법도 다르다. 우리는 Open ISA인 RISC-V의 Instruction Set에 대해 다루어 볼 것이다.
 
+### 1. The RISC-V Instruction Set
+
+RISC-V는 그 구조가 개방된 Open ISA이며 경우에 따라 명령어를 사용하거나 사용하지 않을 수 있는 증분형 ISA이다. 그러나 우리가 다룰 ISA는 어셈블리어 형태를 따르기 때문에, 레지스터 사용 방법이나 오퍼랜드 구조가 다를 뿐 전체적인 구성은 유사하다. 어셈블리어 형태로 된 명령어는 크게 Operation Code와 Operand로 구성되어 있다. Operation Code는 ```add```,``` sub```, ```div```, ```mul```, ```and```, ```or```... 등의 종류가 있으며, 이는 어셈블리어에서 mnemonic이라 불린다. 이 mnemonic을 기계어 값으로 바꾼 것이 Operation Code(이하 OPCODE) 이다. 이 OPCODE의 Parameter가 되는 것이 Operand라고 볼 수 있다. 각각의 Operation과 해당 Operation을 위한 Operand가 어떻게 구성되는지 알아보도록 하자. 
+
+### 2. Arithmetic Operations
+
+덧셈, 뺄셈 등의 산술 연산을 위한 Operation으로 3개의 Operand로 구성된다. 이후 다룰 레지스터, 메모리, 명령어 format등의 개념을 이해하기 쉽게 하기 위해 먼저 다루게 되었다. 사용 형태는 다음과 같다.
+
+```add a, b, c``` : a gets b + c
+
+여기서 ```add```가 mnemomic, ```a```가 destination operand, ```b```,```c```가 source operand이다.
+
+이러한 Opertaion과 Operand의 **규칙성**은 명령어를 좀 더 단순하게 사용할 수 있도록 **단순성**을 높여준다.
+
+아래를 통해 C 언어 코드에 대해 RISC-V 기준으로 컴파일 되었을때 어떻게 되는가를 확인해보자.
+
+C Code : ```f = (g + h) - (i + j);```
+
+Copiled RISC-V code : 
+
+> ```add t0, g, h``` : temp t0 = g + h
+>
+> ```add t1, i, j``` : temp t1 = i + j
+>
+> ```sub f, t0, t1``` : f = t0 - t1
+
+### 3. Register Operands
+
+명령어 사용에서 Operand값이 저장되는 위치는 레지스터와 메모리가 있다. **Operand로 가능한 것은 레지스터와 메모리에 저장된 수치값 둘 뿐이다.**메모리는 빠른 속도로 값을 읽고 쓸 수 있지만, 그 속도는 약 100ms로 많은 명령어를 빠르게 처리해야 하는 마이크로프로세서에서는 매번 메모리에 접근하는 시간조차 줄일 필요가 있다. 그에 따라 저장용량은 적지만 속도를 빠르게 할 수 있는 레지스터를 이용한다. RISC-V에는 32-bit 크기의 명령어를 처리하는 32개의 레지스터들**(32 x 32-bit)**이 있다.(64-bit를 처리하는 RISC-V64도 있다)
+
+각 레지스터는 용도에 따라 구분되어지는데, 그 종류는 다음과 같다.
+
+#### RISC-V Registers
+
+> * x0 : 항상 상수값 0을 저장한 레지스터, 읽기만 가능하고 쓰기는 불가능하다.
+> * x1 : 함수의 돌아갈 주소(return address) 저장
+> * x2 : stack pointer (스택은 함수의 지역변수 & 매개변수 관리)
+> * x3 : global pointer (전역변수, 정적 변수 관리)
+> * x4 : thread pointer
+> * x5 ~ x7 , x28 ~ x31 : temporaries (임시변수 관리) / 마음대로 사용가능하다 보면 된다
+> * x8 : frame pointer
+> * x9, x18 ~ x27 : saved registers (지역변수 관리) / 마음대로 사용가능하다 보면 된다
+> * x10 ~ x11 : 함수의 매개변수 / 결과들
+> * x12 ~ x17 : 함수의 매개변수
+
+
+
+이번에는 해당 레지스터들을 이용하여 위에서 다룬 C 언어 코드가 실제로는 어떻게 컴파일 될 수 있는지 본다.
+
+C Code : ```f = (g + h) - (i + j);``` (f, g, h, i, j 의 data는 각각 레지스터 x19 ~ x23에 저장)
+
+Copiled RISC-V code : 
+
+> ```add x5, x20, x21``` : temp x5= g + h , destination : x5, source : x20, x21
+>
+> ```add x6, x22, x23``` : temp x6 = i + j , destination : x6 , source : x22, x23 
+>
+> ```sub x19, x5, x6``` : x19 <= x5 - x6 , destination : x19 , source : x5, x6 
+
+### 4. Memory Operands
+
+ 레지스터는 속도면에서 장점은 있지만, 레지스터만으로 연산하는 것은 힘들다. 레지스터의 수가 제한되어있지만 여러 곳에서 사용해야 하기 때문에 그 갯수가 부족하고, 제한된 크기의 데이터를 임시로 저장하기 때문에 최적화가 많이 요구된다. 메모리(오퍼랜드)의 특징을 살펴보면 다음과 같다.
+
+> * 메모리는 바이트 단위로 주소가 지정된다
+> * 메인 메모리는 데이터 합성에 사용된다 (배열, 구조체 등)
+> * 메모리를 통한 Operation은 Load와 Store 뿐이다
+> * RISC-V는 Little Endian* 방식이다
+> * RISC-V는 메모리에 word가 정렬될 필요가 없다
+
+메모리를 통한 Operation은 Load와 Store 뿐이다. **Load는 메모리의 값을 레지스터에 담는 것**이고, **Store는 레지스터의 결과를 메모리에 저장하는 것**이다. **단순성을 유지**하여 하드웨어 동작을 빠르게 하기 위함이다. 그렇다면 레지스터 내용이 메모리에 어떻게 저장되는지 확인해보도록 하자. 
 
 --------
 
